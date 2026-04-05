@@ -1,0 +1,52 @@
+prompt.md
+progress.md
+
+# Python
+__pycache__/
+**/_pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+*.env
+
+# uv
+.python-version
+uv.lock
+
+# Node / React frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+ctfx/server/static/
+
+# Distribution
+*.whl
+*.tar.gz
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+.claude/
+.pytest*
