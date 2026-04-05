@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3e;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --accent: #6366f1;
+    --accent-hover: #4f46e5;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .status-fetched {
+    @apply text-slate-400;
+  }
+
+  .status-seen {
+    @apply text-blue-400;
+  }
+
+  .status-working {
+    @apply text-yellow-400;
+  }
+
+  .status-solved {
+    @apply text-green-400;
+  }
+
+  .card {
+    @apply rounded-lg border border-[var(--border)] bg-[var(--surface)];
+  }
+
+  .btn {
+    @apply cursor-pointer rounded px-3 py-1.5 text-sm font-medium transition-colors;
+  }
+
+  .btn-primary {
+    @apply cursor-pointer rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)];
+  }
+
+  .btn-ghost {
+    @apply cursor-pointer rounded bg-transparent px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-[var(--border)] hover:text-[var(--text)];
+  }
+
+  .btn-danger {
+    @apply cursor-pointer rounded border border-red-800/40 bg-transparent px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-900/30;
+  }
+}

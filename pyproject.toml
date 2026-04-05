@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "CTFx"
+version = "0.2.1"
+description = "Local-first CTF workspace manager and assistant CLI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Li Yan" }]
+
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "requests>=2.31",
+    "pydantic>=2.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "mcp>=1.0",
+    "paramiko>=3.0",
+    "prompt-toolkit>=3.0",
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+    "itsdangerous>=2.1",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.40"]
+
+[project.scripts]
+ctfx = "ctfx.cli:_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ctfx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# Run tests with: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python pytest
+# (works around a broken web3 pytest plugin if web3 is installed globally)
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
