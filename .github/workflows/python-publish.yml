@@ -34,6 +34,27 @@ jobs:
           python -m pip install --upgrade build
           python -m build
 
+      - name: Verify bundled WebUI assets
+        run: |
+          python - <<'PY'
+          import glob
+          import sys
+          import zipfile
+
+          wheels = glob.glob("dist/*.whl")
+          if not wheels:
+              raise SystemExit("No wheel produced in dist/")
+
+          target = "ctfx/server/static/index.html"
+          with zipfile.ZipFile(wheels[0]) as wheel:
+              names = set(wheel.namelist())
+
+          if target not in names:
+              raise SystemExit(f"Missing bundled WebUI asset: {target}")
+
+          print(f"Verified bundled WebUI asset: {target}")
+          PY
+
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "CTFx"
-version = "0.2.2"
+version = "0.2.3"
 description = "Local-first CTF workspace manager and assistant CLI"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -31,6 +31,9 @@ llm = ["anthropic>=0.40"]
 
 [project.scripts]
 ctfx = "ctfx.cli:_main"
+
+[tool.hatch.build]
+artifacts = ["ctfx/server/static/**"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["ctfx"]
