@@ -18,7 +18,7 @@ except ImportError:
 
 import json as _json
 
-SCHEMA_VERSION = "0.2.1"
+SCHEMA_VERSION = "0.2.2"
 DEFAULT_PORT = 8694
 DEFAULT_HOST = "127.0.0.1"
 CONFIG_DIR = Path("~/.config/ctfx").expanduser()
