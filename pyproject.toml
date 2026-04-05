@@ -8,7 +8,7 @@ version = "0.2.2"
 description = "Local-first CTF workspace manager and assistant CLI"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { text = "AGPLv3" }
 authors = [{ name = "Li Yan" }]
 
 dependencies = [
