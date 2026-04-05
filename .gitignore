@@ -18,6 +18,8 @@ env/
 .env
 *.env
 
+**/package-lock.json
+
 # uv
 .python-version
 uv.lock
