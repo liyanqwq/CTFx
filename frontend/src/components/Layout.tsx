@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Check, ChevronDown, Flag, Settings, Swords, Table2, Terminal, Trophy } from "lucide-react";
+import { Check, ChevronDown, Flag, Settings, Swords, Table2, Terminal, Trophy, Wrench } from "lucide-react";
 import { api } from "@/lib/api";
 import { useComp } from "@/lib/compContext";
 import { cn } from "@/lib/utils";
@@ -143,6 +143,7 @@ export default function Layout() {
           <NavItem to="/" icon={<Terminal size={14} />} label="Dashboard" />
           <NavItem to="/flags" icon={<Table2 size={14} />} label="Flags" />
           <NavItem to="/submit" icon={<Flag size={14} />} label="Submit Flag" />
+          <NavItem to="/toolkit" icon={<Wrench size={14} />} label="Toolkit" />
           {isAwd && (
             <>
               <div className="mt-3 mb-1 px-2 text-xs text-[var(--muted)] uppercase tracking-wider">AWD</div>

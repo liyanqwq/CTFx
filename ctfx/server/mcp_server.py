@@ -255,4 +255,63 @@ def build_mcp_server(
             results.append({"file": f.name, **meta})
         return results
 
+    @mcp.tool()
+    def get_toolkit(
+        category: str | None = None,
+        tags: list[str] | None = None,
+        sets: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return attack tools from the personal toolkit, filtered by category and/or tags.
+        Call this at the start of working on a challenge to discover available tools.
+        The 'prompt' field of each entry explains when and how to use the tool.
+        The 'cmd' field is a template — pass its variables to run_toolkit_tool."""
+        from ctfx.managers.toolkit import ToolkitManager
+        tm = ToolkitManager.ensure_init()
+        return tm.list_tools(category=category, tags=tags, sets=sets)
+
+    @mcp.tool()
+    def run_toolkit_tool(
+        tool_id: str,
+        vars: dict[str, str],
+        timeout: int = 60,
+    ) -> dict[str, str]:
+        """Execute a toolkit entry by ID, substituting template variables in its cmd.
+        tool_id may be 'set_id:tool_id' or a bare 'tool_id' (searches active sets).
+        vars provides substitution values for placeholders such as {exploit}, {file}, {dir}.
+        Returns stdout, stderr, and returncode."""
+        from ctfx.managers.toolkit import ToolkitManager
+        tm = ToolkitManager.ensure_init()
+        try:
+            tool = tm.get_tool(tool_id)
+        except KeyError as e:
+            return {"error": str(e), "stdout": "", "stderr": "", "returncode": "-1"}
+
+        cmd_template = tool.get("cmd", "")
+        try:
+            expanded = cmd_template.format_map(vars)
+        except KeyError as e:
+            return {
+                "error": f"Missing template variable {e} in cmd: {cmd_template!r}",
+                "stdout": "",
+                "stderr": "",
+                "returncode": "-1",
+            }
+
+        try:
+            result = subprocess.run(
+                build_command(expanded),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+            )
+            return {
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": str(result.returncode),
+            }
+        except subprocess.TimeoutExpired:
+            return {"error": f"Tool timed out after {timeout}s", "stdout": "", "stderr": "", "returncode": "-1"}
+        except Exception as e:
+            return {"error": str(e), "stdout": "", "stderr": "", "returncode": "-1"}
+
     return mcp

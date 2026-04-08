@@ -1,5 +1,25 @@
 export type ChallengeStatus = "fetched" | "seen" | "working" | "hoard" | "solved";
 
+export type ToolkitTool = {
+  id: string;
+  name: string;
+  cmd: string;
+  categories: string[];
+  tags: string[];
+  description?: string;
+  prompt?: string;
+  ref?: string | null;
+  _set?: string;
+};
+
+export type ToolkitSet = {
+  id: string;
+  active: boolean;
+  pinned: boolean;
+  source?: string | null;
+  tool_count: number;
+};
+
 export type CompetitionSummary = {
   dir: string;
   name: string;
@@ -318,6 +338,79 @@ export const api = {
         headers: { "Content-Type": "text/plain" },
         body: content,
       }
+    );
+  },
+
+  // Toolkit
+  listToolkitSets() {
+    return request<ToolkitSet[]>("/api/toolkit/sets");
+  },
+
+  createToolkitSet(id: string, name: string) {
+    return request<{ id: string; name: string }>("/api/toolkit/sets", {
+      method: "POST",
+      body: JSON.stringify({ id, name }),
+    });
+  },
+
+  deleteToolkitSet(setId: string) {
+    return request<{ ok: boolean }>(`/api/toolkit/sets/${encodeURIComponent(setId)}`, {
+      method: "DELETE",
+    });
+  },
+
+  enableToolkitSet(setId: string) {
+    return request<{ ok: boolean }>(`/api/toolkit/sets/${encodeURIComponent(setId)}/enable`, {
+      method: "POST",
+    });
+  },
+
+  disableToolkitSet(setId: string) {
+    return request<{ ok: boolean }>(`/api/toolkit/sets/${encodeURIComponent(setId)}/disable`, {
+      method: "POST",
+    });
+  },
+
+  importToolkitSet(url: string, alias?: string) {
+    return request<{ id: string }>("/api/toolkit/import", {
+      method: "POST",
+      body: JSON.stringify({ url, alias: alias || undefined }),
+    });
+  },
+
+  exportToolkitSet(setId: string) {
+    return request<Record<string, unknown>>(`/api/toolkit/export/${encodeURIComponent(setId)}`);
+  },
+
+  listToolkitTools(params?: { cat?: string; tag?: string; set?: string }) {
+    const q = new URLSearchParams();
+    if (params?.cat) q.set("cat", params.cat);
+    if (params?.tag) q.set("tag", params.tag);
+    if (params?.set) q.set("set", params.set);
+    const suffix = q.toString() ? `?${q.toString()}` : "";
+    return request<ToolkitTool[]>(`/api/toolkit/tools${suffix}`);
+  },
+
+  addToolkitTool(tool: Omit<ToolkitTool, "_set">, setId = "personal") {
+    return request<ToolkitTool>(`/api/toolkit/tools?set_id=${encodeURIComponent(setId)}`, {
+      method: "POST",
+      body: JSON.stringify(tool),
+    });
+  },
+
+  updateToolkitTool(toolId: string, updates: Partial<Omit<ToolkitTool, "id" | "_set">>, setId?: string) {
+    const suffix = setId ? `?set_id=${encodeURIComponent(setId)}` : "";
+    return request<ToolkitTool>(`/api/toolkit/tools/${encodeURIComponent(toolId)}${suffix}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+  },
+
+  deleteToolkitTool(toolId: string, setId?: string) {
+    const suffix = setId ? `?set_id=${encodeURIComponent(setId)}` : "";
+    return request<{ ok: boolean; set: string }>(
+      `/api/toolkit/tools/${encodeURIComponent(toolId)}${suffix}`,
+      { method: "DELETE" }
     );
   },
 

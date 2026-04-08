@@ -138,6 +138,18 @@ ctfx config set <key> <value>          Set a config value (dot-notation)
 ctfx serve [--port] [--host]           Start WebUI + API + MCP server
 ctfx setup                             Interactive configuration wizard
 ctfx i                                 Interactive REPL
+
+ctfx toolkit list [--cat] [--tag] [--set]    List tools across active sets
+ctfx toolkit add [--set <id>]                Add a tool interactively
+ctfx toolkit rm <tool-id> [--set <id>]       Remove a tool
+ctfx toolkit info <tool-id>                  Show tool detail (prompt, ref, cmd)
+ctfx toolkit import <url|file> [--as <id>]  Import a set
+ctfx toolkit export <set-id> [--out file]    Export a set to JSON
+ctfx toolkit update [<set-id>]              Re-fetch set(s) from source URL
+ctfx toolkit set list                        List all sets
+ctfx toolkit set create <name>              Create a new set
+ctfx toolkit set enable/disable <set-id>    Toggle set activation
+ctfx toolkit set rm <set-id>                Delete a set
 ```
 
 ### Aliases
@@ -223,6 +235,78 @@ ctfx awd cmd <service> -- <command>     Run remote command
 
 Security note:
 - AWD SSH now relies on known host keys. Add the target host to your SSH known hosts first, otherwise the connection will be rejected instead of being auto-trusted.
+
+## Personal Attacker Toolkit
+
+CTFx includes a personal toolkit registry — a shareable catalogue of attack tools tagged by challenge category. The LLM queries it via MCP (`get_toolkit`) to select the right tool for each challenge.
+
+### Quick Start
+
+```sh
+# Add a tool to your personal set (interactive)
+ctfx toolkit add
+
+# List all active tools
+ctfx toolkit list
+
+# Filter by category or tag
+ctfx toolkit list --cat pwn --tag rop
+
+# Import a shared set from a URL or local file
+ctfx toolkit import https://gist.github.com/example/xxxx
+ctfx toolkit import ~/Downloads/crypto-recipes.json --as crypto-recipes
+
+# Export your personal set to share it
+ctfx toolkit export personal --out my-toolkit.json
+
+# Keep an imported set up to date
+ctfx toolkit update
+```
+
+### Set Management
+
+Multiple toolkit sets can be active simultaneously. Tools are merged in order — if two active sets define the same tool ID, the first set wins.
+
+```sh
+ctfx toolkit set list                  # show all sets with active status
+ctfx toolkit set enable <set-id>       # add to active sets
+ctfx toolkit set disable <set-id>      # remove from active sets (keeps file)
+ctfx toolkit set rm <set-id>           # delete set
+```
+
+### Sharing Protocol
+
+A toolkit set is a plain JSON file. Share it via any URL (GitHub Gist, raw file, etc.):
+
+```json
+{
+  "id": "my-pwn-toolkit",
+  "name": "My PWN Toolkit",
+  "author": "you",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "id": "pwntools-rop",
+      "name": "pwntools ROP chain",
+      "categories": ["pwn"],
+      "tags": ["rop", "x86_64"],
+      "cmd": "python {exploit}",
+      "prompt": "Use when binary has NX enabled and you need to leak libc. Check checksec first."
+    }
+  ]
+}
+```
+
+The `prompt` field tells the LLM *when and how* to use the tool — this is the most important field for MCP accuracy.
+
+### MCP Integration
+
+When working on a challenge, call `get_toolkit` first to retrieve relevant tools:
+
+```
+get_toolkit(category="pwn")           → filtered list with prompts
+run_toolkit_tool("john-zip", {"file": "hash.txt"})  → stdout/stderr/returncode
+```
 
 ## Platform Support
 

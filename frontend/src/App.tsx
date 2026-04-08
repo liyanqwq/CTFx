@@ -11,6 +11,7 @@ import AWDOverview from "@/pages/awd/AWDOverview";
 import AWDExploits from "@/pages/awd/AWDExploits";
 import AWDPatches from "@/pages/awd/AWDPatches";
 import AWDHostMap from "@/pages/awd/AWDHostMap";
+import ToolkitPage from "@/pages/ToolkitPage";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="awd/:service/exploits" element={<AWDExploits />} />
           <Route path="awd/:service/patches" element={<AWDPatches />} />
           <Route path="awd/:service/hosts" element={<AWDHostMap />} />
+          <Route path="toolkit" element={<ToolkitPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

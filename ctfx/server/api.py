@@ -678,6 +678,182 @@ def list_awd_patches(
     return results
 
 
+# ---------------------------------------------------------------------------
+# Toolkit endpoints — /api/toolkit/...
+# ---------------------------------------------------------------------------
+
+toolkit_router = APIRouter(prefix="/toolkit", tags=["toolkit"])
+
+
+def _toolkit() -> "Any":  # ToolkitManager, imported lazily
+    from ctfx.managers.toolkit import ToolkitManager
+    return ToolkitManager.ensure_init()
+
+
+class CreateSetBody(BaseModel):
+    id: str
+    name: str
+
+
+class ToolBody(BaseModel):
+    id: str
+    name: str
+    cmd: str
+    categories: list[str] = []
+    tags: list[str] = []
+    description: str = ""
+    prompt: str = ""
+    ref: str | None = None
+
+
+class ToolPatch(BaseModel):
+    name: str | None = None
+    cmd: str | None = None
+    categories: list[str] | None = None
+    tags: list[str] | None = None
+    description: str | None = None
+    prompt: str | None = None
+    ref: str | None = None
+
+
+class ImportBody(BaseModel):
+    url: str | None = None
+    data: dict | None = None
+    alias: str | None = None
+
+
+@toolkit_router.get("/sets")
+def tk_list_sets(_: BearerAuth) -> list[dict]:
+    return _toolkit().list_sets()
+
+
+@toolkit_router.post("/sets", status_code=201)
+def tk_create_set(_: BearerAuth, body: CreateSetBody) -> dict:
+    try:
+        _toolkit().create_set(body.id, body.name)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"id": body.id, "name": body.name}
+
+
+@toolkit_router.delete("/sets/{set_id}")
+def tk_remove_set(_: BearerAuth, set_id: str) -> dict:
+    try:
+        _toolkit().remove_set(set_id)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"ok": True}
+
+
+@toolkit_router.post("/sets/{set_id}/enable")
+def tk_enable_set(_: BearerAuth, set_id: str) -> dict:
+    try:
+        _toolkit().enable_set(set_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"ok": True}
+
+
+@toolkit_router.post("/sets/{set_id}/disable")
+def tk_disable_set(_: BearerAuth, set_id: str) -> dict:
+    try:
+        _toolkit().disable_set(set_id)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"ok": True}
+
+
+@toolkit_router.post("/import", status_code=201)
+def tk_import(_: BearerAuth, body: ImportBody) -> dict:
+    import urllib.request as _ur
+    import json as _json
+
+    if body.data:
+        raw_data = body.data
+        if body.url:
+            raw_data.setdefault("source", body.url)
+    elif body.url:
+        try:
+            with _ur.urlopen(body.url, timeout=15) as resp:  # noqa: S310
+                raw_data = _json.loads(resp.read().decode("utf-8"))
+            raw_data.setdefault("source", body.url)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to fetch URL: {e}")
+    else:
+        raise HTTPException(status_code=422, detail="Provide either 'url' or 'data'")
+
+    try:
+        set_id = _toolkit().import_set(raw_data, body.alias)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"id": set_id}
+
+
+@toolkit_router.get("/export/{set_id}")
+def tk_export(_: BearerAuth, set_id: str) -> dict:
+    try:
+        return _toolkit().export_set(set_id)
+    except (KeyError, FileNotFoundError) as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@toolkit_router.get("/tools")
+def tk_list_tools(
+    _: BearerAuth,
+    cat: str | None = None,
+    tag: str | None = None,
+    set: str | None = None,
+) -> list[dict]:
+    tags = [tag] if tag else None
+    sets = [set] if set else None
+    return _toolkit().list_tools(category=cat, tags=tags, sets=sets)
+
+
+@toolkit_router.post("/tools", status_code=201)
+def tk_add_tool(
+    _: BearerAuth,
+    body: ToolBody,
+    set_id: str = "personal",
+) -> dict:
+    tool = body.model_dump()
+    try:
+        _toolkit().add_tool(set_id, tool)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return tool
+
+
+@toolkit_router.patch("/tools/{tool_id}")
+def tk_update_tool(
+    _: BearerAuth,
+    tool_id: str,
+    body: ToolPatch,
+    set_id: str | None = None,
+) -> dict:
+    updates = body.model_dump(exclude_unset=True)
+    try:
+        _toolkit().update_tool(tool_id, updates, set_id)
+        return _toolkit().get_tool(tool_id, set_id)
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@toolkit_router.delete("/tools/{tool_id}")
+def tk_remove_tool(
+    _: BearerAuth,
+    tool_id: str,
+    set_id: str | None = None,
+) -> dict:
+    try:
+        sid = _toolkit().remove_tool(tool_id, set_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"ok": True, "set": sid}
+
+
+router.include_router(toolkit_router)
+
+
 @router.post("/{competition}/challenges/{cat}/{chal}/run")
 def run_exploit(
     _: BearerAuth,

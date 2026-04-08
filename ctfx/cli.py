@@ -17,6 +17,7 @@ from ctfx.commands.token import token_group
 from ctfx.commands.webui import cmd_webui
 from ctfx.commands.interactive import cmd_interactive
 from ctfx.commands.config import config_group
+from ctfx.commands.toolkit import toolkit_group
 
 
 @click.group(invoke_without_command=True)
@@ -47,6 +48,7 @@ main.add_command(chal_group, name="chal")
 main.add_command(awd_group, name="awd")
 main.add_command(token_group, name="token")
 main.add_command(config_group, name="config")
+main.add_command(toolkit_group, name="toolkit")
 
 # Direct commands
 main.add_command(cmd_cli, name="cli")
