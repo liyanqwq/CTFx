@@ -64,6 +64,43 @@ export type CompetitionInfo = {
   services?: Record<string, unknown>;
 };
 
+export type RemoteChallengeRecord = {
+  platform_id: number;
+  name: string;
+  display_name: string;
+  category: string;
+  description?: string;
+  points?: number | null;
+  connection_info?: string;
+  files?: string[];
+  solved_by_me?: boolean;
+};
+
+export type PlatformStatus = {
+  base_url: string;
+  auth_mode: string;
+  authenticated: boolean;
+  challenge_count: number;
+  solved_count: number;
+  scoreboard_entries: number;
+};
+
+export type PlatformScoreboardEntry = {
+  name?: string;
+  account_name?: string;
+  team?: string;
+  score?: number;
+  value?: number;
+};
+
+export type PlatformSolveEntry = {
+  date?: string;
+  created?: string;
+  name?: string;
+  account_name?: string;
+  user?: string;
+};
+
 export type ConfigShape = {
   basedir?: string;
   active_competition?: string | null;
@@ -160,6 +197,7 @@ export const api = {
     url?: string;
     flag_format?: string;
     team_name?: string;
+    team_token?: string;
   }) {
     return request<CompetitionSummary>("/api/competitions", {
       method: "POST",
@@ -425,5 +463,23 @@ export const api = {
       .split("/")
       .map((part) => encodeURIComponent(part))
       .join("/")}`;
+  },
+
+  getPlatformStatus(comp: string) {
+    return request<PlatformStatus>(`/api/${encodeURIComponent(comp)}/platform/status`);
+  },
+
+  listPlatformChallenges(comp: string) {
+    return request<RemoteChallengeRecord[]>(`/api/${encodeURIComponent(comp)}/platform/challenges`);
+  },
+
+  getPlatformScoreboard(comp: string) {
+    return request<PlatformScoreboardEntry[]>(`/api/${encodeURIComponent(comp)}/platform/scoreboard`);
+  },
+
+  getPlatformChallengeSolves(comp: string, challengeId: number) {
+    return request<PlatformSolveEntry[]>(
+      `/api/${encodeURIComponent(comp)}/platform/challenges/${challengeId}/solves`
+    );
   },
 };

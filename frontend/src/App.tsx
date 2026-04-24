@@ -7,6 +7,7 @@ import SubmitPage from "@/pages/SubmitPage";
 import Competitions from "@/pages/Competitions";
 import Settings from "@/pages/Settings";
 import CompetitionProfile from "@/pages/CompetitionProfile";
+import PlatformApiPage from "@/pages/PlatformApiPage";
 import AWDOverview from "@/pages/awd/AWDOverview";
 import AWDExploits from "@/pages/awd/AWDExploits";
 import AWDPatches from "@/pages/awd/AWDPatches";
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="challenge/:cat/:name" element={<ChallengePage />} />
           <Route path="flags" element={<FlagsPage />} />
           <Route path="submit" element={<SubmitPage />} />
+          <Route path="platform-api" element={<PlatformApiPage />} />
           <Route path="competitions" element={<Competitions />} />
           <Route path="competitions/:dir" element={<CompetitionProfile />} />
           <Route path="settings" element={<Settings />} />

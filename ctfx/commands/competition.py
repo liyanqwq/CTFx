@@ -157,6 +157,7 @@ def _switch(cfg: ConfigManager, comp: dict) -> None:
 @click.option("--url", default=None, help="Platform URL")
 @click.option("--flag-format", default=None, help="Flag format (e.g. flag{...})")
 @click.option("--team-name", default=None, help="Team display name")
+@click.option("--team-token", default=None, help="Team API token")
 def cmd_init(
     name: str,
     year: int,
@@ -165,6 +166,7 @@ def cmd_init(
     url: str | None,
     flag_format: str | None,
     team_name: str | None,
+    team_token: str | None,
 ) -> None:
     """Initialize a new competition workspace."""
     cfg = ConfigManager.load()
@@ -187,6 +189,7 @@ def cmd_init(
         url=url,
         flag_format=flag_format,
         team_name=team_name,
+        team_token=team_token,
         dir_name=comp_dir,
     )
     cfg.active_competition = root.name

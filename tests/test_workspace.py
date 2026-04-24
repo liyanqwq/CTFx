@@ -17,6 +17,13 @@ def test_init_competition_creates_ctf_json(comp_wm: WorkspaceManager):
     assert data["mode"] == "jeopardy"
 
 
+def test_init_competition_persists_team_token(tmp_basedir: Path):
+    wm = WorkspaceManager(tmp_basedir, "TOKEN_CTF_2025")
+    wm.init_competition("TOKEN_CTF", 2025, "jeopardy", "ctfd", team_token="secret-token")
+    data = wm.load_ctf_json()
+    assert data["team_token"] == "secret-token"
+
+
 def test_create_challenge_creates_dirs(comp_wm: WorkspaceManager):
     chal_dir = comp_wm.create_challenge("pwn", "baby_pwn")
     assert (chal_dir / "src").is_dir()

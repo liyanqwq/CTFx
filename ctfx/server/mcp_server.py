@@ -34,6 +34,22 @@ def build_mcp_server(
             raise ValueError("No active competition set")
         return WorkspaceManager(basedir, comp)
 
+    def _ctfd_platform(competition: str | None = None):
+        from ctfx.managers.platform.ctfd import CTFdPlatform
+
+        wm = _wm(competition)
+        data = wm.load_ctf_json()
+        if data.get("platform") != "ctfd":
+            raise ValueError("Competition platform is not CTFd")
+
+        url = data.get("url") or ""
+        token = data.get("team_token") or None
+        cookies = data.get("team_cookies") or None
+        if not url or (not token and not cookies):
+            raise ValueError("Set url and team_token or team_cookies first")
+
+        return CTFdPlatform(url, token=token, cookies=cookies), data
+
     @mcp.tool()
     def list_competitions() -> list[dict[str, Any]]:
         """List all competitions in the CTFx workspace."""
@@ -107,6 +123,30 @@ def build_mcp_server(
         if not prompt_path.exists():
             return "(prompt.md not found - run `ctfx ai` to generate)"
         return prompt_path.read_text(encoding="utf-8")
+
+    @mcp.tool()
+    def platform_status(competition: str | None = None) -> dict[str, Any]:
+        """Return a CTFd API status summary for the active competition."""
+        platform, _ = _ctfd_platform(competition)
+        return platform.get_api_status()
+
+    @mcp.tool()
+    def platform_challenges(competition: str | None = None) -> list[dict[str, Any]]:
+        """List remote challenges from the configured CTFd instance."""
+        platform, _ = _ctfd_platform(competition)
+        return platform.fetch_challenges()
+
+    @mcp.tool()
+    def platform_scoreboard(competition: str | None = None) -> list[dict[str, Any]]:
+        """Return the remote CTFd scoreboard."""
+        platform, _ = _ctfd_platform(competition)
+        return platform.get_scoreboard()
+
+    @mcp.tool()
+    def platform_solves(challenge_id: int, competition: str | None = None) -> list[dict[str, Any]]:
+        """Return solve records for a remote CTFd challenge ID."""
+        platform, _ = _ctfd_platform(competition)
+        return platform.get_challenge_solves(challenge_id)
 
     @mcp.tool()
     def submit_flag(

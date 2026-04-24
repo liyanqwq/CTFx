@@ -143,6 +143,7 @@ export default function Layout() {
           <NavItem to="/" icon={<Terminal size={14} />} label="Dashboard" />
           <NavItem to="/flags" icon={<Table2 size={14} />} label="Flags" />
           <NavItem to="/submit" icon={<Flag size={14} />} label="Submit Flag" />
+          <NavItem to="/platform-api" icon={<Terminal size={14} />} label="API" />
           <NavItem to="/toolkit" icon={<Wrench size={14} />} label="Toolkit" />
           {isAwd && (
             <>

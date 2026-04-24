@@ -16,6 +16,7 @@ export default function Competitions() {
     platform: "manual",
     url: "",
     team_name: "",
+    team_token: "",
     flag_format: "",
   });
 
@@ -40,6 +41,7 @@ export default function Competitions() {
         ...form,
         url: form.url || undefined,
         team_name: form.team_name || undefined,
+        team_token: form.team_token || undefined,
         flag_format: form.flag_format || undefined,
       }),
     onSuccess: async (created) => {
@@ -53,6 +55,7 @@ export default function Competitions() {
         platform: "manual",
         url: "",
         team_name: "",
+        team_token: "",
         flag_format: "",
       });
     },
@@ -211,6 +214,15 @@ export default function Competitions() {
           <input
             value={form.team_name}
             onChange={(e) => setForm((v) => ({ ...v, team_name: e.target.value }))}
+            className="w-full rounded border border-[var(--border)] bg-black/20 px-3 py-2"
+          />
+        </Field>
+
+        <Field label="Team Token">
+          <input
+            type="password"
+            value={form.team_token}
+            onChange={(e) => setForm((v) => ({ ...v, team_token: e.target.value }))}
             className="w-full rounded border border-[var(--border)] bg-black/20 px-3 py-2"
           />
         </Field>

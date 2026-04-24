@@ -120,6 +120,7 @@ class WorkspaceManager:
         url: str | None = None,
         flag_format: str | None = None,
         team_name: str | None = None,
+        team_token: str | None = None,
         dir_name: str | None = None,
     ) -> Path:
         """Create a new competition directory and ctf.json. Returns competition root."""
@@ -133,7 +134,7 @@ class WorkspaceManager:
             "year": year,
             "flag_format": flag_format or "flag{...}",
             "team_name": team_name or "",
-            "team_token": "",
+            "team_token": team_token or "",
             "team_cookies": "",
             "mode": mode,
             "platform": platform,

@@ -221,6 +221,30 @@ async def test_add_challenge_api(test_app, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_create_competition_persists_team_token(test_app, auth_headers):
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        r = await c.post(
+            "/api/competitions",
+            json={
+                "name": "Remote CTF",
+                "year": 2026,
+                "mode": "jeopardy",
+                "platform": "ctfd",
+                "url": "https://ctfd.example",
+                "team_token": "secret-token",
+            },
+            headers=auth_headers,
+        )
+        assert r.status_code == 200
+        assert r.json()["dir"] == "remote_ctf_2026"
+
+    created = Path(test_app.state.basedir) / "remote_ctf_2026" / "ctf.json"
+    assert created.exists()
+    assert "secret-token" in created.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
 async def test_add_challenge_rejects_path_escape(test_app, auth_headers):
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:

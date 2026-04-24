@@ -27,6 +27,24 @@ def _get_wm(request: Request, competition: str) -> WorkspaceManager:
     return wm
 
 
+def _get_ctfd_platform(wm: WorkspaceManager) -> tuple["Any", dict[str, Any]]:
+    data = wm.load_ctf_json()
+    if data.get("platform") != "ctfd":
+        raise HTTPException(status_code=400, detail="Competition platform is not CTFd")
+
+    from ctfx.managers.platform.ctfd import CTFdPlatform
+
+    url = data.get("url") or ""
+    token = data.get("team_token") or None
+    cookies = data.get("team_cookies") or None
+    if not url or (not token and not cookies):
+        raise HTTPException(
+            status_code=400,
+            detail="Competition URL and team_token or team_cookies must be configured",
+        )
+    return CTFdPlatform(url, token=token, cookies=cookies), data
+
+
 def _get_challenge_meta(wm: WorkspaceManager, cat: str, chal: str) -> tuple[str, dict[str, Any]]:
     key = f"{cat}/{chal}"
     data = wm.load_ctf_json()
@@ -139,6 +157,7 @@ class CreateCompetitionBody(BaseModel):
     url: str | None = None
     flag_format: str | None = None
     team_name: str | None = None
+    team_token: str | None = None
 
 
 class UpdateCompetitionBody(BaseModel):
@@ -212,6 +231,7 @@ def create_competition_endpoint(
         url=body.url,
         flag_format=body.flag_format,
         team_name=body.team_name,
+        team_token=body.team_token,
         dir_name=comp_dir,
     )
     return {
@@ -626,6 +646,51 @@ def trigger_fetch(
             created += 1
 
     return {"created": str(created)}
+
+
+@router.get("/{competition}/platform/status")
+def platform_status(_: BearerAuth, request: Request, competition: str) -> dict[str, Any]:
+    wm = _get_wm(request, competition)
+    platform, _ = _get_ctfd_platform(wm)
+    try:
+        return platform.get_api_status()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to query platform API: {e}")
+
+
+@router.get("/{competition}/platform/challenges")
+def platform_challenges(_: BearerAuth, request: Request, competition: str) -> list[dict[str, Any]]:
+    wm = _get_wm(request, competition)
+    platform, _ = _get_ctfd_platform(wm)
+    try:
+        return platform.fetch_challenges()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch remote challenges: {e}")
+
+
+@router.get("/{competition}/platform/scoreboard")
+def platform_scoreboard(_: BearerAuth, request: Request, competition: str) -> list[dict[str, Any]]:
+    wm = _get_wm(request, competition)
+    platform, _ = _get_ctfd_platform(wm)
+    try:
+        return platform.get_scoreboard()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch remote scoreboard: {e}")
+
+
+@router.get("/{competition}/platform/challenges/{challenge_id}/solves")
+def platform_challenge_solves(
+    _: BearerAuth,
+    request: Request,
+    competition: str,
+    challenge_id: int,
+) -> list[dict[str, Any]]:
+    wm = _get_wm(request, competition)
+    platform, _ = _get_ctfd_platform(wm)
+    try:
+        return platform.get_challenge_solves(challenge_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to fetch remote solves: {e}")
 
 
 @router.get("/{competition}/awd/exploits/{service}")

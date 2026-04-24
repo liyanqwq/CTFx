@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
 
 from ctfx.managers.config import ConfigManager, _default_config
 from ctfx.managers.workspace import WorkspaceManager
+
+
+@pytest.fixture(autouse=True)
+def isolated_global_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Keep tests from reading or overwriting the user's real global config."""
+    import ctfx.managers.config as cfg_module
+
+    config_dir = tmp_path / "config"
+    config_file = config_dir / "config.json"
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    data = _default_config(str(tmp_path / "ctf"))
+    config_file.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    monkeypatch.setattr(cfg_module, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(cfg_module, "CONFIG_FILE", config_file)
+    return config_file
 
 
 @pytest.fixture

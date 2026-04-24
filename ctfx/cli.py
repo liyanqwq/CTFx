@@ -12,6 +12,7 @@ from ctfx.commands.platform import cmd_fetch, cmd_submit, cmd_import
 from ctfx.commands.serve import cmd_serve
 from ctfx.commands.ai import cmd_ai, cmd_mcp
 from ctfx.commands.awd import awd_group
+from ctfx.commands.api import api_group
 from ctfx.commands.setup import cmd_setup
 from ctfx.commands.token import token_group
 from ctfx.commands.webui import cmd_webui
@@ -46,6 +47,7 @@ def _main() -> None:
 main.add_command(comp_group, name="comp")
 main.add_command(chal_group, name="chal")
 main.add_command(awd_group, name="awd")
+main.add_command(api_group, name="api")
 main.add_command(token_group, name="token")
 main.add_command(config_group, name="config")
 main.add_command(toolkit_group, name="toolkit")
