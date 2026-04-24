@@ -245,6 +245,40 @@ async def test_create_competition_persists_team_token(test_app, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_patch_config_accepts_ai_provider(test_app, auth_headers):
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        r = await c.patch(
+            "/api/config",
+            json={"key": "ai_provider", "value": "anthropic"},
+            headers=auth_headers,
+        )
+        assert r.status_code == 200
+        assert r.json()["value"] == "anthropic"
+
+
+@pytest.mark.asyncio
+async def test_ai_test_endpoint(test_app, auth_headers, monkeypatch):
+    def fake_ai_test(_cfg):
+        return {
+            "ok": True,
+            "provider": "openai",
+            "model": "gpt-5.4",
+            "base_url": "https://api.example.test/v1",
+            "text": "OK",
+        }
+
+    monkeypatch.setattr("ctfx.server.api.test_connection", fake_ai_test)
+
+    transport = ASGITransport(app=test_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        r = await c.post("/api/config/ai-test", headers=auth_headers)
+        assert r.status_code == 200
+        assert r.json()["ok"] is True
+        assert r.json()["text"] == "OK"
+
+
+@pytest.mark.asyncio
 async def test_add_challenge_rejects_path_escape(test_app, auth_headers):
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:

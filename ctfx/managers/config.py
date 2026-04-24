@@ -18,7 +18,7 @@ except ImportError:
 
 import json as _json
 
-SCHEMA_VERSION = "0.2.5"
+SCHEMA_VERSION = "0.2.6"
 DEFAULT_PORT = 8694
 DEFAULT_HOST = "127.0.0.1"
 CONFIG_DIR = Path("~/.config/ctfx").expanduser()
@@ -67,9 +67,13 @@ def _default_config(basedir: str) -> dict[str, Any]:
             "one_time_login_ttl_sec": 60,
             "session_ttl_sec": 2592000,
         },
-        "ai_model": "claude-sonnet-4-6",
-        "ai_endpoint": None,
+        "ai_provider": "openai",
+        "ai_model": "gpt-5.4",
+        "ai_api_key": None,
+        "ai_openai_base_url": "https://api.openai.com/v1",
+        "ai_anthropic_base_url": "https://api.anthropic.com",
         "anthropic_api_key": None,
+        "ai_endpoint": None,
     }
 
 
@@ -227,6 +231,13 @@ def _migrate(data: dict[str, Any]) -> dict[str, Any]:
         "one_time_login_ttl_sec": 60,
         "session_ttl_sec": 2592000,
     })
+    data.setdefault("ai_provider", "openai")
+    data.setdefault("ai_model", "gpt-5.4")
+    data.setdefault("ai_api_key", None)
+    data.setdefault("ai_openai_base_url", "https://api.openai.com/v1")
+    data.setdefault("ai_anthropic_base_url", "https://api.anthropic.com")
+    data.setdefault("anthropic_api_key", None)
+    data.setdefault("ai_endpoint", None)
     data["schema_version"] = SCHEMA_VERSION
     return data
 

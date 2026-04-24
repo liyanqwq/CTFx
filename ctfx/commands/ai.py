@@ -1,4 +1,4 @@
-"""AICommand — ctfx ai / ctfx mcp"""
+"""AI commands: prompt generation, config export, and connectivity checks."""
 
 from __future__ import annotations
 
@@ -8,13 +8,20 @@ from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.table import Table
 
+from ctfx.managers.ai import (
+    get_api_key_source,
+    get_base_url,
+    get_model,
+    get_provider,
+    test_connection,
+)
 from ctfx.managers.config import ConfigManager
 from ctfx.managers.workspace import WorkspaceManager
 
 console = Console()
 
-# Marker for the user-editable section preserved across regenerations
 _EXTRA_INFO_HEADER = "## Extra Info"
 _EXTRA_INFO_DEFAULT = (
     "<!-- preserved across regenerations; "
@@ -37,7 +44,7 @@ def _load_active() -> tuple[ConfigManager, WorkspaceManager, dict]:
 
 
 def _extract_extra_info(existing_text: str) -> str:
-    """Extract the ## Extra Info section from an existing prompt.md, preserving user notes."""
+    """Extract the ## Extra Info section from an existing prompt.md."""
     match = re.search(
         rf"^{re.escape(_EXTRA_INFO_HEADER)}\s*\n(.*)",
         existing_text,
@@ -57,10 +64,10 @@ When connected via MCP (Cursor, Claude Desktop, or any MCP-capable client), use 
 |------|-------------|
 | `list_competitions` | List all competitions in the workspace |
 | `get_competition` | Get active (or specified) competition metadata |
-| `list_challenges` | List challenges — filter by `category` or `status` |
+| `list_challenges` | List challenges - filter by `category` or `status` |
 | `get_challenge` | Get full detail for a specific challenge by name |
 | `add_challenge` | Create a new challenge directory with scaffold |
-| `set_challenge_status` | Update status: `fetched` → `seen` → `working` → `solved` |
+| `set_challenge_status` | Update status: `fetched` -> `seen` -> `working` -> `solved` |
 | `get_prompt` | Read this prompt.md file |
 | `submit_flag` | Submit a flag to the platform (or record locally) |
 | `run_exploit` | Run `solve/exploit.py` via the configured Python command |
@@ -107,6 +114,7 @@ ctfx mcp [--out PATH]            Generate MCP client config
 
 # Other
 ctfx ai [--print]                Regenerate this prompt.md
+ctfx ai_test                     Test the configured AI connection
 ctfx token update                Rotate root token
 ctfx config show                 Show full config
 ctfx config set <key> <value>    Edit config by dot-notation key
@@ -144,7 +152,6 @@ def _build_prompt(data: dict, challenges: list[dict], extra_info: str) -> str:
         "## Challenge Status",
     ]
 
-    # Group challenges by category
     by_cat: dict[str, list[dict]] = {}
     for chal in challenges:
         by_cat.setdefault(chal["category"] or "misc", []).append(chal)
@@ -153,7 +160,7 @@ def _build_prompt(data: dict, challenges: list[dict], extra_info: str) -> str:
         lines.append(f"\n### {cat}")
         for chal in by_cat[cat]:
             pts = f" ({chal['points']} pts)" if chal.get("points") is not None else ""
-            status_marker = "✓" if chal["status"] == "solved" else "·"
+            status_marker = "done" if chal["status"] == "solved" else "todo"
             lines.append(f"- {status_marker} `{chal['name']}` [{chal['status']}]{pts}")
 
     lines += [
@@ -172,16 +179,11 @@ def _build_prompt(data: dict, challenges: list[dict], extra_info: str) -> str:
 @click.command("ai")
 @click.option("--print", "do_print", is_flag=True, help="Also print prompt to stdout")
 def cmd_ai(do_print: bool) -> None:
-    """Generate prompt.md with competition context for LLM use.
-
-    Preserves the '## Extra Info' section across regenerations.
-    """
-    cfg, wm, data = _load_active()
+    """Generate prompt.md with competition context for LLM use."""
+    _, wm, data = _load_active()
     challenges = wm.list_challenges()
 
     prompt_path = wm.competition_root() / "prompt.md"
-
-    # Preserve the ## Extra Info section if the file already exists
     if prompt_path.exists():
         existing = prompt_path.read_text(encoding="utf-8")
         extra_info = _extract_extra_info(existing)
@@ -198,8 +200,45 @@ def cmd_ai(do_print: bool) -> None:
     console.print(f"[green]Wrote[/green] {prompt_path}")
     console.print(
         f"  [dim]{len(challenges)} challenges listed | "
-        f"edit '## Extra Info' to add manual context[/dim]"
+        "edit '## Extra Info' to add manual context[/dim]"
     )
+
+
+@click.command("ai_test")
+@click.option("-v", "--verbose", is_flag=True, help="Print request target details before testing")
+def cmd_ai_test(verbose: bool) -> None:
+    """Test the configured AI provider, model, and credentials."""
+    cfg = ConfigManager.load()
+    provider = get_provider(cfg)
+    model = get_model(cfg)
+    base_url = get_base_url(cfg, provider)
+
+    if verbose:
+        console.print(f"[dim]provider:[/dim] {provider}")
+        console.print(f"[dim]model:[/dim] {model}")
+        console.print(f"[dim]base_url:[/dim] {base_url}")
+        console.print(f"[dim]auth_source:[/dim] {get_api_key_source(cfg)}")
+
+    try:
+        result = test_connection(cfg)
+    except Exception as exc:
+        console.print(f"[red]AI connection failed:[/red] {exc}")
+        raise SystemExit(1)
+
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_column("Field", style="bold cyan")
+    table.add_column("Value")
+    table.add_row("provider", str(result["provider"]))
+    table.add_row("model", str(result["model"]))
+    table.add_row("base_url", str(result["base_url"]))
+    table.add_row("response", str(result["text"]))
+    console.print(table)
+
+    if not result["ok"]:
+        console.print("[yellow]AI endpoint responded, but the reply was not exactly 'OK'.[/yellow]")
+        raise SystemExit(1)
+
+    console.print("[green]AI connection OK.[/green]")
 
 
 @click.command("mcp")
@@ -221,8 +260,6 @@ def cmd_mcp(out: str | None) -> None:
     if out:
         Path(out).write_text(text, encoding="utf-8")
         console.print(f"[green]Wrote[/green] {out}")
-        console.print(
-            f"[dim]MCP endpoint: http://{cfg.serve_host}:{cfg.serve_port}/mcp[/dim]"
-        )
+        console.print(f"[dim]MCP endpoint: http://{cfg.serve_host}:{cfg.serve_port}/mcp[/dim]")
     else:
         console.print(text)

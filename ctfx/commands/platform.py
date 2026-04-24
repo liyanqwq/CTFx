@@ -11,6 +11,7 @@ import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
+from ctfx.managers.ai import extract_challenge_data, get_model, get_provider
 from ctfx.managers.config import ConfigManager
 from ctfx.managers.workspace import WorkspaceManager
 from ctfx.managers.scaffold import ScaffoldManager
@@ -296,76 +297,18 @@ def cmd_import(url: str | None, stdin: bool) -> None:
 
 def _llm_extract(content: str, cfg: ConfigManager) -> dict | None:
     """Send content to the configured LLM and extract structured challenge data."""
-    try:
-        import anthropic
-    except ImportError:
-        console.print(
-            "[red]anthropic package not installed.[/red] "
-            "Run: [cyan]pip install CTFx[llm][/cyan]"
-        )
-        return None
-
-    api_key = _get_api_key(cfg)
-    if not api_key:
-        return None
-
-    model = cfg.get("ai_model") or "claude-sonnet-4-6"
-    endpoint = cfg.get("ai_endpoint")
-
-    schema_example = json.dumps({
-        "name": "baby_pwn",
-        "category": "pwn",
-        "description": "Overflow the buffer and get shell.",
-        "attachments": [{"name": "chall", "url": "https://..."}],
-        "flag_format": "flag{...}",
-        "remote": "nc chall.ctf.org 1337",
-        "points": 100,
-    }, indent=2)
-
-    prompt = (
-        "Extract CTF challenge information from the following text and output ONLY valid JSON "
-        "matching this schema (no preamble, no markdown fences):\n\n"
-        f"{schema_example}\n\n"
-        "Use null for missing fields. Category must be one of: pwn, crypto, web, forensics, rev, misc.\n\n"
-        f"Text to extract from:\n---\n{content[:8000]}\n---"
+    console.print(
+        f"[dim]Calling {get_provider(cfg)} / {get_model(cfg)} for extraction...[/dim]"
     )
 
-    console.print(f"[dim]Calling {model} for extraction...[/dim]")
-
-    client_kwargs: dict = {"api_key": api_key}
-    if endpoint:
-        client_kwargs["base_url"] = endpoint
-
-    client = anthropic.Anthropic(**client_kwargs)
     try:
-        msg = client.messages.create(
-            model=model,
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = msg.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        return json.loads(raw)
+        return extract_challenge_data(content, cfg)
     except json.JSONDecodeError as e:
         console.print(f"[red]LLM returned invalid JSON:[/red] {e}")
         return None
     except Exception as e:
         console.print(f"[red]LLM call failed:[/red] {e}")
         return None
-
-
-def _get_api_key(cfg: ConfigManager) -> str | None:
-    import os
-    key = os.environ.get("ANTHROPIC_API_KEY") or cfg.get("anthropic_api_key")
-    if key:
-        return key
-    console.print(
-        "[red]No Anthropic API key found.[/red] "
-        "Set [cyan]ANTHROPIC_API_KEY[/cyan] environment variable or "
-        "run: [cyan]ctfx config set anthropic_api_key <key>[/cyan]"
-    )
-    return None
 
 
 def _print_extracted(d: dict) -> None:

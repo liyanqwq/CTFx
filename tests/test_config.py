@@ -17,6 +17,9 @@ def test_default_config_has_required_keys(tmp_path):
     assert "serve" in data
     assert data["serve"]["port"] == 8694
     assert "auth" in data
+    assert data["ai_provider"] == "openai"
+    assert data["ai_model"] == "gpt-5.4"
+    assert data["ai_api_key"] is None
 
 
 def test_migrate_backfills_missing_fields():
@@ -25,6 +28,8 @@ def test_migrate_backfills_missing_fields():
     assert migrated["schema_version"] == SCHEMA_VERSION
     assert migrated["token_version"] == 1
     assert "auth" in migrated
+    assert migrated["ai_provider"] == "openai"
+    assert migrated["ai_model"] == "gpt-5.4"
 
 
 def test_get_nested(config: ConfigManager):

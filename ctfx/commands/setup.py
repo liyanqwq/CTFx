@@ -1,4 +1,4 @@
-"""SetupCommand — ctfx setup (interactive configuration wizard)."""
+"""SetupCommand - ctfx setup (interactive configuration wizard)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from ctfx.managers.config import (
     CONFIG_FILE,
     ConfigManager,
     _atomic_write,
-    _default_config,
     _detect_platform,
 )
 
@@ -31,7 +30,7 @@ def _reconfigure() -> None:
     """Interactive re-configuration for an existing install."""
     cfg = ConfigManager.load()
 
-    console.print("[bold cyan]CTFx Setup[/bold cyan]  —  reconfiguring existing install\n")
+    console.print("[bold cyan]CTFx Setup[/bold cyan]  - reconfiguring existing install\n")
     _show_summary(cfg)
     console.print()
 
@@ -57,10 +56,17 @@ def _reconfigure() -> None:
         t["wsl_distro"] = click.prompt("WSL distro name", default=t.get("wsl_distro") or "kali-linux")
         python_default = f"wsl -d {t['wsl_distro']} python3"
         t["python_cmd"] = click.prompt("Python command", default=t.get("python_cmd") or python_default)
-        t["explorer_cmd"] = click.prompt("File explorer command", default=t.get("explorer_cmd") or "explorer.exe")
+        t["explorer_cmd"] = click.prompt(
+            "File explorer command",
+            default=t.get("explorer_cmd") or "explorer.exe",
+        )
     else:
         import os
-        t["cli_cmd"] = click.prompt("Default shell command", default=t.get("cli_cmd") or os.environ.get("SHELL", "/bin/bash"))
+
+        t["cli_cmd"] = click.prompt(
+            "Default shell command",
+            default=t.get("cli_cmd") or os.environ.get("SHELL", "/bin/bash"),
+        )
         t["python_cmd"] = click.prompt("Python command", default=t.get("python_cmd") or "python3")
         t["file_manager_cmd"] = click.prompt(
             "File manager command (leave blank to skip)",
@@ -79,23 +85,38 @@ def _reconfigure() -> None:
 
     # --- AI ---
     console.print("\n[bold]AI / LLM[/bold]")
-    data["ai_model"] = click.prompt("AI model", default=data.get("ai_model") or "claude-sonnet-4-6")
-    api_key_display = "(set)" if data.get("anthropic_api_key") else "(not set)"
+    data["ai_provider"] = click.prompt(
+        "AI provider",
+        default=data.get("ai_provider") or "openai",
+        type=click.Choice(["openai", "anthropic"], case_sensitive=False),
+    )
+    data["ai_model"] = click.prompt("AI model", default=data.get("ai_model") or "gpt-5.4")
+    data["ai_openai_base_url"] = click.prompt(
+        "OpenAI-compatible base URL",
+        default=data.get("ai_openai_base_url") or "https://api.openai.com/v1",
+    )
+    data["ai_anthropic_base_url"] = click.prompt(
+        "Anthropic-compatible base URL",
+        default=data.get("ai_anthropic_base_url") or "https://api.anthropic.com",
+    )
+    api_key_display = "(set)" if data.get("ai_api_key") else "(not set)"
     new_key = click.prompt(
-        f"Anthropic API key {api_key_display} — press Enter to keep",
+        f"AI API key {api_key_display} - press Enter to keep",
         default="",
         show_default=False,
     )
     if new_key.strip():
-        data["anthropic_api_key"] = new_key.strip()
+        data["ai_api_key"] = new_key.strip()
 
     # Persist
     from ctfx.managers.config import CONFIG_DIR
+
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     _atomic_write(CONFIG_FILE, data)
 
     # Create basedir
     from pathlib import Path
+
     Path(basedir).expanduser().mkdir(parents=True, exist_ok=True)
 
     # Reload and warn
@@ -106,9 +127,9 @@ def _reconfigure() -> None:
     console.print(f"  Config file: [dim]{CONFIG_FILE}[/dim]")
     console.print(f"  Basedir:     [bold]{basedir}[/bold]")
     console.print("\n[dim]Next steps:[/dim]")
-    console.print("  [cyan]ctfx comp init[/cyan]  — create a competition")
-    console.print("  [cyan]ctfx serve[/cyan]       — start the server")
-    console.print("  [cyan]ctfx webui[/cyan]        — open the WebUI")
+    console.print("  [cyan]ctfx comp init[/cyan]  - create a competition")
+    console.print("  [cyan]ctfx serve[/cyan]      - start the server")
+    console.print("  [cyan]ctfx webui[/cyan]      - open the WebUI")
 
 
 def _show_summary(cfg: ConfigManager) -> None:
@@ -121,5 +142,7 @@ def _show_summary(cfg: ConfigManager) -> None:
     table.add_row("Server", f"{cfg.serve_host}:{cfg.serve_port}")
     table.add_row("Editor", cfg.terminal.get("editor_cmd") or "[dim](not set)[/dim]")
     table.add_row("Python command", cfg.terminal.get("python_cmd") or "[dim](not set)[/dim]")
+    table.add_row("AI provider", cfg.get("ai_provider") or "[dim](not set)[/dim]")
+    table.add_row("AI model", cfg.get("ai_model") or "[dim](not set)[/dim]")
     table.add_row("Token version", str(cfg.token_version))
     console.print(table)

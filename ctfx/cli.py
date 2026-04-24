@@ -10,7 +10,7 @@ from ctfx.commands.challenge import chal_group, cmd_add
 from ctfx.commands.terminal import cmd_cli, cmd_wsl, cmd_explorer, cmd_code, cmd_py
 from ctfx.commands.platform import cmd_fetch, cmd_submit, cmd_import
 from ctfx.commands.serve import cmd_serve
-from ctfx.commands.ai import cmd_ai, cmd_mcp
+from ctfx.commands.ai import cmd_ai, cmd_ai_test, cmd_mcp
 from ctfx.commands.awd import awd_group
 from ctfx.commands.api import api_group
 from ctfx.commands.setup import cmd_setup
@@ -64,6 +64,7 @@ main.add_command(cmd_submit, name="submit")
 main.add_command(cmd_import, name="import")
 main.add_command(cmd_serve, name="serve")
 main.add_command(cmd_ai, name="ai")
+main.add_command(cmd_ai_test, name="ai_test")
 main.add_command(cmd_mcp, name="mcp")
 main.add_command(cmd_setup, name="setup")
 main.add_command(cmd_webui, name="webui")

@@ -107,9 +107,21 @@ export type ConfigShape = {
   terminal?: Record<string, unknown>;
   serve?: Record<string, unknown>;
   auth?: Record<string, unknown>;
+  ai_provider?: string | null;
   ai_model?: string | null;
+  ai_api_key?: string | null;
+  ai_openai_base_url?: string | null;
+  ai_anthropic_base_url?: string | null;
   ai_endpoint?: string | null;
   anthropic_api_key?: string | null;
+};
+
+export type AiTestResult = {
+  ok: boolean;
+  provider: string;
+  model: string;
+  base_url: string;
+  text: string;
 };
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -182,6 +194,12 @@ export const api = {
     return request<{ ok: boolean; key: string; value: JsonValue }>("/api/config", {
       method: "PATCH",
       body: JSON.stringify({ key, value }),
+    });
+  },
+
+  aiTest() {
+    return request<AiTestResult>("/api/config/ai-test", {
+      method: "POST",
     });
   },
 

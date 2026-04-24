@@ -16,15 +16,16 @@ type SettingKey =
   | "auth.webui_cookie_name"
   | "auth.one_time_login_ttl_sec"
   | "auth.session_ttl_sec"
+  | "ai_provider"
+  | "ai_api_key"
+  | "ai_openai_base_url"
+  | "ai_anthropic_base_url"
   | "anthropic_api_key"
   | "ai_model"
   | "ai_endpoint";
 
 const GROUPS: { label: string; keys: SettingKey[] }[] = [
-  {
-    label: "Workspace",
-    keys: ["basedir"],
-  },
+  { label: "Workspace", keys: ["basedir"] },
   {
     label: "Terminal",
     keys: [
@@ -36,17 +37,22 @@ const GROUPS: { label: string; keys: SettingKey[] }[] = [
       "terminal.file_manager_cmd",
     ],
   },
-  {
-    label: "Server",
-    keys: ["serve.host", "serve.port"],
-  },
+  { label: "Server", keys: ["serve.host", "serve.port"] },
   {
     label: "Auth",
     keys: ["auth.webui_cookie_name", "auth.one_time_login_ttl_sec", "auth.session_ttl_sec"],
   },
   {
     label: "AI",
-    keys: ["anthropic_api_key", "ai_model", "ai_endpoint"],
+    keys: [
+      "ai_provider",
+      "ai_model",
+      "ai_api_key",
+      "ai_openai_base_url",
+      "ai_anthropic_base_url",
+      "anthropic_api_key",
+      "ai_endpoint",
+    ],
   },
 ];
 
@@ -63,9 +69,13 @@ const KEY_LABEL: Record<SettingKey, string> = {
   "auth.webui_cookie_name": "Cookie Name",
   "auth.one_time_login_ttl_sec": "One-Time Login TTL (s)",
   "auth.session_ttl_sec": "Session TTL (s)",
-  anthropic_api_key: "Anthropic API Key",
+  ai_provider: "AI Provider",
+  ai_api_key: "AI API Key",
+  ai_openai_base_url: "OpenAI Base URL",
+  ai_anthropic_base_url: "Anthropic Base URL",
+  anthropic_api_key: "Legacy Anthropic API Key",
   ai_model: "AI Model",
-  ai_endpoint: "AI Endpoint",
+  ai_endpoint: "Legacy AI Endpoint",
 };
 
 function getByPath(obj: unknown, key: string): string {
@@ -104,6 +114,10 @@ export default function Settings() {
     },
   });
 
+  const aiTest = useMutation({
+    mutationFn: () => api.aiTest(),
+  });
+
   const startEdit = (key: SettingKey) => {
     setDraft(getByPath(data, key));
     setEditing(key);
@@ -112,7 +126,7 @@ export default function Settings() {
   const cancelEdit = () => setEditing(null);
 
   const currentValue = useMemo(
-    () => (key: SettingKey) => editing === key ? draft : getByPath(data, key),
+    () => (key: SettingKey) => (editing === key ? draft : getByPath(data, key)),
     [data, editing, draft]
   );
 
@@ -120,33 +134,35 @@ export default function Settings() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Click the pencil icon to edit any setting. Enter to save, Escape to cancel.</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Click the pencil icon to edit any setting. Enter to save, Escape to cancel.
+        </p>
       </div>
 
       {isLoading && <p className="text-sm text-[var(--muted)]">Loading configuration...</p>}
       {error && <p className="text-sm text-red-400">{String(error)}</p>}
 
       {GROUPS.map((group) => (
-        <section key={group.label} className="card p-5 space-y-1">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">
+        <section key={group.label} className="card space-y-1 p-5">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
             {group.label}
           </h2>
           {group.keys.map((key) => {
             const isEditing = editing === key;
             const value = currentValue(key);
             const isSaved = savedKey === key;
-            const isSecret = key === "anthropic_api_key";
+            const isSecret = key === "ai_api_key" || key === "anthropic_api_key";
 
             return (
               <div
                 key={key}
-                className="group flex items-center gap-3 rounded px-2 py-2 hover:bg-white/5 transition-colors"
+                className="group flex items-center gap-3 rounded px-2 py-2 transition-colors hover:bg-white/5"
               >
                 <div className="w-48 shrink-0">
                   <span className="text-sm text-[var(--muted)]">{KEY_LABEL[key]}</span>
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   {isEditing ? (
                     <input
                       autoFocus
@@ -159,26 +175,28 @@ export default function Settings() {
                       className="w-full rounded border border-[var(--accent)] bg-black/20 px-2 py-1 text-sm outline-none"
                     />
                   ) : (
-                    <span className="text-sm font-mono truncate block">
-                      {isSecret && value ? "••••••••" : value || <span className="text-[var(--muted)] italic">not set</span>}
+                    <span className="block truncate font-mono text-sm">
+                      {isSecret && value ? "********" : value || (
+                        <span className="italic text-[var(--muted)]">not set</span>
+                      )}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex shrink-0 items-center gap-1">
                   {isEditing ? (
                     <>
                       <button
                         onClick={() => save.mutate(key)}
                         disabled={save.isPending}
-                        className="p-1 rounded text-green-400 hover:bg-green-400/10"
+                        className="rounded p-1 text-green-400 hover:bg-green-400/10"
                         title="Save (Enter)"
                       >
                         <Check size={15} />
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="p-1 rounded text-[var(--muted)] hover:text-white hover:bg-white/10"
+                        className="rounded p-1 text-[var(--muted)] hover:bg-white/10 hover:text-white"
                         title="Cancel (Escape)"
                       >
                         <X size={15} />
@@ -187,14 +205,14 @@ export default function Settings() {
                   ) : (
                     <button
                       onClick={() => startEdit(key)}
-                      className="p-1 rounded text-[var(--muted)] opacity-0 group-hover:opacity-100 hover:text-white transition-opacity"
+                      className="rounded p-1 text-[var(--muted)] opacity-0 transition-opacity group-hover:opacity-100 hover:text-white"
                       title="Edit"
                     >
                       <Pencil size={14} />
                     </button>
                   )}
                   {isSaved && !isEditing && (
-                    <span className="text-xs text-green-400 ml-1">Saved</span>
+                    <span className="ml-1 text-xs text-green-400">Saved</span>
                   )}
                 </div>
               </div>
@@ -204,6 +222,50 @@ export default function Settings() {
       ))}
 
       {save.error && <p className="text-sm text-red-400">{String(save.error)}</p>}
+
+      <section className="card space-y-3 p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted)]">
+              AI Connection Test
+            </h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              Uses the current provider, model, base URL, and local config key.
+            </p>
+          </div>
+          <button
+            className="btn btn-primary text-sm"
+            disabled={aiTest.isPending}
+            onClick={() => aiTest.mutate()}
+          >
+            {aiTest.isPending ? "Testing..." : "Run AI Test"}
+          </button>
+        </div>
+
+        {aiTest.data && (
+          <div className="space-y-1 rounded border border-[var(--border)] bg-black/20 px-4 py-3 text-sm">
+            <p>
+              <span className="text-[var(--muted)]">provider:</span> {aiTest.data.provider}
+            </p>
+            <p>
+              <span className="text-[var(--muted)]">model:</span> {aiTest.data.model}
+            </p>
+            <p>
+              <span className="text-[var(--muted)]">base_url:</span> {aiTest.data.base_url}
+            </p>
+            <p>
+              <span className="text-[var(--muted)]">response:</span> {aiTest.data.text}
+            </p>
+            <p className={aiTest.data.ok ? "text-green-400" : "text-yellow-400"}>
+              {aiTest.data.ok
+                ? "AI connection OK"
+                : "Endpoint responded but reply was not exactly OK"}
+            </p>
+          </div>
+        )}
+
+        {aiTest.error && <p className="text-sm text-red-400">{String(aiTest.error)}</p>}
+      </section>
     </div>
   );
 }

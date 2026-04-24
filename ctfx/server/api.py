@@ -11,6 +11,8 @@ from fastapi import APIRouter, Body, HTTPException, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 
+from ctfx.managers.ai import test_connection
+from ctfx.managers.config import ConfigManager
 from ctfx.managers.workspace import WorkspaceManager, VALID_STATUSES
 from ctfx.managers.scaffold import ScaffoldManager
 from ctfx.server.auth import BearerAuth
@@ -77,6 +79,10 @@ _SETTABLE_KEYS = {
     "auth.webui_cookie_name",
     "auth.one_time_login_ttl_sec",
     "auth.session_ttl_sec",
+    "ai_provider",
+    "ai_api_key",
+    "ai_openai_base_url",
+    "ai_anthropic_base_url",
     "anthropic_api_key",
     "ai_model",
     "ai_endpoint",
@@ -108,6 +114,15 @@ def get_config(_: BearerAuth, request: Request) -> dict[str, Any]:
 class ConfigPatch(BaseModel):
     key: str
     value: Any
+
+
+@router.post("/config/ai-test")
+def ai_test(_: BearerAuth, request: Request) -> dict[str, Any]:
+    cfg = ConfigManager.load()
+    try:
+        return test_connection(cfg)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.patch("/config")
